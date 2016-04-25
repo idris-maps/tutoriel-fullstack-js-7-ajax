@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Tutoriel-fullstack-js-7-ajax : Tutoriel Fullstack JavaScript - Chapitre 7 - AJAX">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Tutoriel-fullstack-js-7-ajax</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/idris-maps/tutoriel-fullstack-js-7-ajax">View on GitHub</a>
+
+          <h1 id="project_title">Tutoriel-fullstack-js-7-ajax</h1>
+          <h2 id="project_tagline">Tutoriel Fullstack JavaScript - Chapitre 7 - AJAX</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/idris-maps/tutoriel-fullstack-js-7-ajax/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/idris-maps/tutoriel-fullstack-js-7-ajax/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="ajax" class="anchor" href="#ajax" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>AJAX</h1>
+
+<p><a href="https://fr.wikipedia.org/wiki/Ajax_%28informatique%29">AJAX</a> est une architecture où le client demande et envoit des données au serveur. L'acronyme signifie "Asynchronous JavaScript and XML". Malgré le nom, cette manière de faire permet aussi d'envoyer et de recevoir des données au format <a href="https://fr.wikipedia.org/wiki/JavaScript_Object_Notation">JSON</a>, pas uniquement du <a href="https://fr.wikipedia.org/wiki/Extensible_Markup_Language">XML</a>. Pour faire simple, AJAX est ce qui permettera à nos clients de communiquer avec le serveur REST du chapitre précédant.</p>
+
+<p>Dupliquez le dossier <code>6.serveur</code> et appelez-le <code>7.ajax</code>.</p>
+
+<p>Créez un dossier <code>clients</code> dans <code>lib</code> où nous mettrons les scriptes pour construire les clients. </p>
+
+<h2>
+<a id="riot" class="anchor" href="#riot" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Riot</h2>
+
+<h3>
+<a id="mise-en-place" class="anchor" href="#mise-en-place" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Mise en place</h3>
+
+<p>Créez un fichier <code>riot</code> dans <code>lib/clients</code></p>
+
+<p>Copiez les fichiers suivants du dossier <code>4.riot</code> du <a href="link_to_do">chapitre 4</a> vers <code>7.ajax</code></p>
+
+<ul>
+<li>
+<code>4.riot/main.js</code> &gt; <code>7.ajax/lib/clients/riot/main.js</code>
+</li>
+<li>
+<code>4.riot/lib</code> &gt; <code>7.ajax/lib/clients/riot/lib</code>
+</li>
+<li>
+<code>4.riot/public/index.html</code> &gt; <code>7.ajax/public/riot/index.html</code>
+</li>
+<li>
+<code>4.riot/public/style.css</code> &gt; <code>7.ajax/public/riot/style.css</code>
+</li>
+</ul>
+
+<p>Nous ne prenons ni <code>package.json</code> ni <code>node_modules</code>. Puisque nous sommes dans un nouveau projet <code>7.ajax</code>. Nous allons à nouveau télécharger les librairies nécessaires.</p>
+
+<p>Dans <code>7.ajax</code> ouvrez le terminal.</p>
+
+<pre><code>$ npm install handlebars browserify-handlebars --save-dev
+</code></pre>
+
+<p><code>--save-dev</code> veut dire que nous n'avons besoin de ces librairies que pour créer le client et non pour faire tourner le serveur. Si quelqu'un télécharge le serveur mais ne veut pas modifier les clients, il pourra lancer <code>npm install</code> pour ne télécharger que les scriptes utiles au fonctionnement du serveur.</p>
+
+<p>Dans <code>6.serveur/package.json</code> ajoutons les scriptes <code>watch-riot</code> et <code>build-riot</code>.</p>
+
+<pre><code>"watch-riot": "watchify lib/clients/riot/main.js -o public/riot/script.js -t riotify",
+"build-riot": "browserify lib/clients/riot/main.js -o public/riot/script.js -t riotify | minify public/riot/script.js -o public/riot/script.js"
+</code></pre>
+
+<p>Dans le terminal lancez <code>watch-riot</code>:</p>
+
+<pre><code>$ npm run watch-riot
+</code></pre>
+
+<p>Si le fichier <code>public/riot/script.js</code> est créé, nous sommes prêts à ajouter AJAX au client.</p>
+
+<p>Démarrez le serveur dans une autre fenêtre du terminal.</p>
+
+<pre><code>$ node serveur
+</code></pre>
+
+<p>Et ouvrez la page dans le navigateur à cette adresse: http://localhost:3000/riot/</p>
+
+<h2>
+<a id="ajax-en-javascript-pure" class="anchor" href="#ajax-en-javascript-pure" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>AJAX en javascript pure</h2>
+
+<p>Il existe beaucoup de librairies qui nous permettent d'utiliser AJAX mais pour rester dans l'esprit de cet exercice, nous allons l'écrire nous même. </p>
+
+<p>Créez un fichier <code>ajax.js</code> dans <code>lib/clients/riot/lib</code>.</p>
+
+<pre><code>// pour faire une requête GET
+exports.get = function(url, callback) {
+
+// une instance XMLHttpRequest()
+ var request = new XMLHttpRequest()
+
+// le type de requête et l'URL
+ request.open('GET', url, true)
+
+// ce qu'il faut faire avec la réponse
+ request.onload = function() {
+
+// s'il n'y a pas de problème
+   if (request.status &gt;= 200 &amp;&amp; request.status &lt; 400) {
+
+// la fonction de rappel envoit un premier argument "err" null et un deuxième argument avec les données
+     var data = JSON.parse(request.responseText)
+     callback(null, data)
+
+// si nous avons connecté au serveur mais celui-ci nous renvoit une erreur
+   } else {
+    callback('erreur dans la requête GET à l\'URL ' + url)
+   }
+ }
+
+// si nous n'arrivons pas à atteindre le serveur
+ request.onerror = function() {
+  callback('le serveur ne répond pas à l'\URL ' + url)
+ }
+
+// envoyer la requête
+ request.send()
+}
+
+// pour faire une requête POST
+exports.post = function(url, data, callback) {
+ var request = new XMLHttpRequest()
+ request.open('POST', url, true)
+ request.setRequestHeader('Content-type', 'application/json; charset=utf-8')
+ request.onreadystatechange = function () { 
+  if(request.readyState == 4 &amp;&amp; request.status == 200) {
+   var json = JSON.parse(request.responseText)
+   callback(null, json)
+  } else {
+   callback('Could not post to server')
+  }
+ }
+
+// la seule différence avec GET est que nous envoyons des données au serveur
+ request.send(JSON.stringify(data))
+}
+</code></pre>
+
+<p>Nous allons maintenant ouvrir <code>lib/clients/riot/lib/Modele-a-faire.js</code> pour que le modèle aille chercher et modifie les données sur le serveur.</p>
+
+<p>Les changements sont commentés.</p>
+
+<pre><code>var Event = require('events')
+var ajax = require('./ajax') // lien vers ajax.js
+
+module.exports = function() {
+ var ctx = this
+ ctx.evt = new Event
+ ctx.data = [] // vider le dictionnaire "data"
+
+// une méthode "charger" pour charger les données au lancement de l'application
+ ctx.charger = function(callback) {
+  ajax.get('/api/a-faire', function(err,data) {
+   if(err) { console.log(err) }
+   else { ctx.data = data }
+   callback()
+  })
+ }
+
+ ctx.ajouter = function(text) {
+
+// POST un objet "aAjouter" et émettre "ajout" quand le serveur a répondu
+  var aAjouter = {text: text, fait: false}
+  ajax.post('/api/a-faire', aAjouter, function(err,data) {
+   if(err) { console.log(err) }
+   else { ctx.data = data }
+    ctx.evt.emit('ajout')
+  })
+ }
+
+ ctx.basculerFait = function(index) {
+  if(ctx.data[index].fait) { ctx.data[index].fait = false }
+  else { ctx.data[index].fait = true }
+  maj(ctx.data[index]) // mettre à jour sur le serveur, voir fonction plus bas
+ }
+
+ ctx.mettreAJour = function(index, text) {
+  ctx.data[index].text = text
+  maj(ctx.data[index]) // mettre à jour sur le serveur, voir fonction plus bas
+ }
+
+ ctx.supprimerFait = function() {
+  var aGarder = []
+  var idsAsupprimer = [] // dictionnaire d'ID à supprimer
+  ctx.data.forEach(function(element) {
+   if(!element.fait) { aGarder.push(element) }
+   else { idsAsupprimer.push(element.id) }
+  })
+  ctx.data = aGarder
+
+// POST les IDs à supprimer
+  ajax.post('/api/a-faire/supprimer', idsAsupprimer, function(err,data) {
+   if(err) { console.log(err) }
+   else { ctx.data = data }
+   ctx.evt.emit('suppression')
+  })
+ }
+}
+
+// fonction pour POSTer les mises à jour
+function maj(element) {
+ ajax.post('/api/a-faire/maj', element)
+}
+</code></pre>
+
+<p>Lors du chargement de la page, il faut aller chercher les données sur le serveur avec la méthode <code>.charger()</code>.</p>
+
+<p>Ouvrez <code>lib/clients/riot/main.js</code></p>
+
+<pre><code>var riot = require('riot')
+var Modele = require('./lib/Modele-a-faire')
+var aFaireListe = require('./lib/composants/a-faire-liste.tag')
+var aFaireFormulaire = require('./lib/composants/a-faire-formulaire.tag')
+
+var modele = new Modele
+
+modele.charger(function() { // &lt;- nouveau
+ riot.mount('a-faire-liste', modele)
+ riot.mount('a-faire-formulaire', modele)
+}) // &lt;- nouveau
+</code></pre>
+
+<p>Si le serveur et le scripte <code>watch-riot</code> tournent encore sans afficher d'erreurs, revisitez la page dans le navigateur. Rien ne s'affiche, c'est normal nous n'avons rien "à faire" dans la base de données. Ajoutez quelque chose.</p>
+
+<p>En testant l'application, jetez un coup d'oeil aux requêtes AJAX que fait le navigateur. Dans Firefox, c'est la commande clavier <code>Ctrl-Shift-Q</code>. Vous allez voir les requêtes GET et POST effectuées.</p>
+
+<p>Arrêtez le scripte <code>watch-riot</code> et créez l'application en lançant:</p>
+
+<pre><code>$ npm run build-riot
+</code></pre>
+
+<h2>
+<a id="angular" class="anchor" href="#angular" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Angular</h2>
+
+<p>Pour Angular nous allons utiliser la méthode <code>$http</code>.</p>
+
+<h3>
+<a id="mise-en-place-1" class="anchor" href="#mise-en-place-1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Mise en place</h3>
+
+<p>Copiez les fichiers de <code>5.angular</code> vers <code>7.ajax</code></p>
+
+<ul>
+<li>
+<code>5.angular/main.js</code> &gt; <code>7.ajax/lib/clients/angular/main.js</code>
+</li>
+<li>
+<code>5.angular/public/index.html</code> &gt; <code>7.ajax/public/angular/index.html</code>
+</li>
+<li>
+<code>5.angular/public/style.css</code> &gt; <code>7.ajax/public/angular/style.css</code>
+</li>
+</ul>
+
+<p>Installez angular</p>
+
+<pre><code>$ npm install angular --save-dev
+</code></pre>
+
+<p>Ajoutez les scriptes <code>watch-angular</code> et <code>build-angular</code> à <code>package.json</code></p>
+
+<pre><code>"watch-angular": "watchify lib/clients/angular/main.js -o public/angular/script.js",
+"build-angular": "browserify lib/clients/angular/main.js -o public/angular/script.js | minify public/angular/script.js -o public/angular/script.js"
+</code></pre>
+
+<p>Lancez <code>watch-angular</code>.</p>
+
+<h3>
+<a id="http" class="anchor" href="#http" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>$http</h3>
+
+<p>Ouvrez <code>main.js</code></p>
+
+<p>Dans angular, <code>$http</code> s'occupe des requêtes AJAX. Il faut l'ajouter comme argument de la fonction dans <code>.controller()</code> pour pouvoir l'utiliser.</p>
+
+<p>Les nouveautés sont commentées.</p>
+
+<pre><code>var angular = require('angular')
+var app = angular.module('aFaire', [])
+
+function aFaireCtrl($scope, $http) { // ajouter $http comme argument de la fonction
+
+// vider le dictionnaire
+ $scope.data = [] 
+
+// charger les données du serveur
+ $http.get('/api/a-faire').success(function(data) {
+  $scope.data = data
+ })
+
+ $scope.ajouter = function() {
+  if($scope.nouveau) {
+   var aAjouter = {text: $scope.nouveau, fait: false} // un objet "aAjouter"
+   $http.post('/api/a-faire', aAjouter) // POSTer
+    .success(function(data) { $scope.data = data }) // en cas de succès
+    .error(function(err) { console.log(err) }) // s'il y a une erreur
+  }
+ }
+
+ $scope.supprimerFait = function() {
+  var idsAsupprimer = [] // dictionnaire d'IDs à supprimer
+  $scope.data.forEach(function(o) {
+   if(o.fait) { idsAsupprimer.push(o.id) } // si fait mettre l'ID dans "idsAsupprimer"
+  })
+  $http.post('/api/a-faire/supprimer', idsAsupprimer) // POSTer les IDs
+   .success(function(data) { $scope.data = data }) // en cas de succès
+   .error(function(err) { console.log(err) }) // s'il y a une erreur
+ }
+
+ $scope.basculerFait = function(index) {
+  if($scope.data[index].fait) {
+   $scope.data[index].fait = false
+  } else {
+   $scope.data[index].fait = true
+  }
+  maj($scope, $http, $scope.data[index]) // mettre à jour sur le serveur (voir fonction plus bas)
+ }
+
+ $scope.basculerMaj = function(index) {
+  if($scope.data[index].maj) { $scope.data[index].maj = undefined }
+  else {
+   $scope.data.forEach(function(o) { if(o.maj) { o.maj = undefined } })
+   $scope.data[index].maj = true
+  }
+ }
+
+ $scope.mettreAJour = function(index) {
+  if(this.nouveauText) {
+   $scope.data[index].text = this.nouveauText
+   maj($scope, $http, $scope.data[index]) // mettre à jour sur le serveur (voir fonction plus bas)
+   $scope.data[index].maj = undefined
+   this.nouveauText = ''
+  }
+ }
+}
+
+// injecter aussi $http avec $inject
+aFaireCtrl.$inject = ['$scope', '$http']
+
+// passer $http au contrôleur
+app.controller('aFaireCtrl', ['$scope', '$http', aFaireCtrl])
+
+// fonction de mise à jour
+function maj($scope, $http, element) {
+ $http.post('/api/a-faire/maj', element)
+  .success(function(data) { $scope.data = data })
+  .error(function(err) { console.log(err) })
+} 
+</code></pre>
+
+<p>Si l'application fonctionne, arrêtez <code>watch-angular</code> et lancez <code>build-angular</code>.</p>
+
+<pre><code>$ npm run build-angular
+</code></pre>
+
+<h1>
+<a id="fin" class="anchor" href="#fin" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>FIN</h1>
+
+<p>Dans ce tutoriel nous avons vu comment créer des applications de type MVC avec javascript. En commençant par tout faire nous-même pour comprendre ce qui se passe. Puis en ajoutant des scriptes externes pour nous faciliter la vie. Nous avons rapidement vu comment créer un serveur avec Express qui sert des données via une API REST et des fichiers. Finalement, dans ce chapiter, nous avons avons modifié deux clients pour qu'ils communiquent avec l'API REST par le biais de requêtes AJAX.</p>
+
+<p>Notre application "A faire" est excessivement simpliste et n'est pas d'une grande utilité. Mais j'espère que vous avez maintenant vu les bases qui vous permetterons de créer des applications plus ambitieuses.</p>
+
+<p><img src="https://avatars3.githubusercontent.com/u/12154856" alt="Idris maps"></p>
+
+<p><a href="http://www.idris-maps.com">http://www.idris-maps.com</a></p>
+
+<p>Si vous avez aimé ce tutoriel et souhaitez m'employer, vous pouvez me contacter à <code>idris.maps(a)gmx(point)ch</code></p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Tutoriel-fullstack-js-7-ajax maintained by <a href="https://github.com/idris-maps">idris-maps</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>

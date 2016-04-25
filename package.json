@@ -1,0 +1,25 @@
+{
+  "name": "7.ajax",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "init-bd": "rm bd.sqlite | node mise-en-place-bd",
+    "watch-riot": "watchify lib/clients/riot/main.js -o public/riot/script.js -t riotify",
+    "build-riot": "browserify lib/clients/riot/main.js -o public/riot/script.js -t riotify | minify public/riot/script.js -o public/riot/script.js",
+    "watch-angular": "watchify lib/clients/angular/main.js -o public/angular/script.js",
+    "build-angular": "browserify lib/clients/angular/main.js -o public/angular/script.js | minify public/angular/script.js -o public/angular/script.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "express": "^4.13.4",
+    "sqlite3": "^3.1.3"
+  },
+  "devDependencies": {
+    "angular": "^1.5.5",
+    "riot": "^2.3.18",
+    "riotify": "^1.0.0"
+  }
+}
